@@ -1,0 +1,106 @@
+---
+title: "Data Science Assignment"
+output: html_notebook
+---
+Dataset: mtcars: Motor Trend Car Road Tests
+
+```{r} 
+# load the library
+library(RCurl)
+# specify the URL for the Lung Cancer data CSV
+urlfile <-'https://archive.ics.uci.edu/ml/machine-learning-databases/wine/wine.data'
+wine <-  read.csv(urlfile, sep = ",", quote = "\"'")
+colnames(wine) <- c('Type', 'Alcohol', 'Malic', 'Ash', 
+                      'Alcalinity', 'Magnesium', 'Phenols', 
+                      'Flavanoids', 'Nonflavanoids',
+                      'Proanthocyanins', 'Color', 'Hue', 
+                      'Dilution', 'Proline')
+# preview the first 5 rows
+head(wine)
+```
+#### Splitting Data into Train and test set
+```{r}
+#install.packages("caTools")       # For sampling the dataset
+#install.packages("randomForest")
+dim(wine)
+library(caTools)
+split <- sample.split(wine, SplitRatio = 0.8)
+train <- subset(wine, split == "TRUE")
+test <- subset(wine, split == "FALSE") 
+```
+#### Fitting Random Forest to the train dataset
+```{r}
+library(randomForest) 
+set.seed(120)  # Setting seed
+classifier_RF = 
+classifier_RF = randomForest(x = train[,2:14],
+                             y = as.factor(train$Type),
+                             ntree = 500)
+```
+```{r}
+classifier_RF
+```
+
+```{r}
+library("ipred")
+pred_test <- predict(classifier_RF,test)
+xtab = table(pred_test,test$Type)
+#library("caret")
+confusionMatrix(xtab)
+```
+```{r}
+
+  
+# Plotting model
+plot(classifier_RF)
+  
+# Importance plot
+importance(classifier_RF)
+  
+# Variable importance plot
+varImpPlot(classifier_RF)
+```
+## Bagging
+```{r}
+ 
+mybag <- bagging(as.factor(train$Type) ~ .,data=train,nbag=25) 
+pred_bag <- predict(mybag,test)
+pred_bag
+
+```
+```{r}
+library(gmodels)
+CrossTable(test$Type,pred_bag,
+           prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE,
+           dnn = c('actual type of Wine', 'predicted type of Wine'))
+
+
+#install.packages("caret")
+#install.packages("e1071")
+library("caret")
+library(e1071)
+xtab <- table(pred_bag, test$Type)
+results <- confusionMatrix(xtab)
+results
+```
+### Boosting
+
+```{r}
+set.seed(12345)
+#install.packages("C50")
+
+library(C50)
+Model <- C5.0(x = train[,2:14], y = as.factor(train$Type))
+data_pred <- predict(Model,test)
+library(gmodels)
+CrossTable(test$Type, data_pred,
+           prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE,
+           dnn = c('actual type of Wine', 'predicted type of Wine'))
+
+data_boost10 <-  C5.0(x = train[,2:14], y = as.factor(train$Type),
+                      trials = 10)
+summary(data_boost10)
+```
+```{r}
+
+```
